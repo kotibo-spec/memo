@@ -323,7 +323,6 @@
                 <div class="setting-item">
                     <button id="force-update" style="color: var(--accent-color); font-weight:bold;">アプリを最新版に更新</button>
                 </div>
-                <!-- JSONバックアップ機能は削除しました -->
             </div>
         </div>
     </main>
@@ -600,7 +599,7 @@
 
         function goBack() {
             if (els.views.editor.classList.contains('active')) {
-                // 【機能追加】空メモ自動削除
+                // 空メモ自動削除
                 const memo = memos.find(m => m.id === editingMemoId);
                 if (memo) {
                     const isEmpty = !memo.text.trim() && (!memo.title || !memo.title.trim());
@@ -963,49 +962,54 @@
             }
         }
 
+        // --- txt書き出し (修正版) ---
         async function exportSelectedToTxt() {
             if (selectedMemoIds.size === 0) return;
-            let content = '';
-            const targets = memos.filter(m => selectedMemoIds.has(m.id));
             
-            if(targets.length === 0) {
-                if(currentTab === 'folder' && !currentFolderId) {
-                    const targetFolderIds = Array.from(selectedMemoIds);
-                    const folderMemos = memos.filter(m => targetFolderIds.includes(m.folderId));
-                    folderMemos.forEach(m => {
-                        const t = m.title || '無題';
-                        content += `--- ${t} (${new Date(m.updatedAt).toLocaleString()}) ---\n${m.text}\n\n`;
-                    });
-                }
+            // 書き出し対象のメモをリストアップ
+            let targets = [];
+            if(currentTab === 'folder' && !currentFolderId) {
+                const targetFolderIds = Array.from(selectedMemoIds).filter(id => folders.some(f => f.id === id));
+                const folderMemos = memos.filter(m => targetFolderIds.includes(m.folderId));
+                targets = targets.concat(folderMemos);
+                const directMemos = memos.filter(m => selectedMemoIds.has(m.id));
+                targets = targets.concat(directMemos);
+                targets = [...new Set(targets)];
             } else {
-                 targets.forEach(m => {
-                    const t = m.title || '無題';
-                    content += `--- ${t} (${new Date(m.updatedAt).toLocaleString()}) ---\n${m.text}\n\n`;
-                });
+                targets = memos.filter(m => selectedMemoIds.has(m.id));
             }
 
-            if(!content) {
+            if(targets.length === 0) {
                 alert('書き出すメモがありません');
                 return;
             }
 
-            const fileName = `export_${new Date().toISOString().slice(0,10)}.txt`;
-            const file = new File([content], fileName, { type: 'text/plain' });
+            // Fileオブジェクト配列の生成
+            const files = targets.map(m => {
+                let filename = m.title ? m.title.trim() : '';
+                if (!filename) {
+                    const d = new Date(m.updatedAt);
+                    filename = `メモ_${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
+                }
+                return new File([m.text || ''], filename + '.txt', { type: 'text/plain' });
+            });
 
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            // 共有実行 (filesのみを渡す)
+            if (navigator.canShare && navigator.canShare({ files: files })) {
                 try {
                     await navigator.share({
-                        files: [file],
-                        title: 'メモ書き出し',
+                        files: files
                     });
                 } catch (err) {
                     if (err.name !== 'AbortError') {
-                        downloadFileFallback(file);
+                        alert('共有できませんでした。ダウンロードを試みます。');
+                        files.forEach(f => downloadFileFallback(f));
                     }
                 }
             } else {
-                downloadFileFallback(file);
+                files.forEach(f => downloadFileFallback(f));
             }
+            
             toggleEditMode();
         }
 
