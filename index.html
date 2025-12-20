@@ -25,13 +25,10 @@
             --list-title-size: 16px;
             --list-date-size: 11px;
             
-            /* タブバーの基本高さ */
             --tab-bar-height: 55px;
-            /* セーフエリア込みの下部スペース計算 */
             --safe-area-bottom: env(safe-area-inset-bottom, 20px);
         }
 
-        /* 文字サイズ変更用クラス */
         body.fs-small { --base-font-size: 14px; --list-title-size: 14px; --list-date-size: 10px; }
         body.fs-medium { --base-font-size: 16px; --list-title-size: 16px; --list-date-size: 11px; }
         body.fs-large { --base-font-size: 20px; --list-title-size: 20px; --list-date-size: 13px; }
@@ -42,7 +39,6 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
-            /* iPhoneのアドレスバー対策: dvhを使う */
             height: 100vh;
             height: 100dvh; 
             display: flex; flex-direction: column;
@@ -110,7 +106,6 @@
         }
         .list-item.folder-item { color: #fff; font-weight: bold; padding: 16px; }
 
-        /* メモリストのデザイン */
         .memo-content { flex: 1; min-width: 0; }
         .memo-title { font-size: var(--list-title-size); font-weight: bold; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .memo-date { 
@@ -179,15 +174,13 @@
             font-size: 12px; font-weight: bold; border-bottom: 1px solid var(--border-color);
         }
 
-        /* Tab Bar - ここを修正 */
+        /* Tab Bar */
         #tab-bar {
-            /* 高さ自動調整でセーフエリアに対応 */
             height: auto; 
             min-height: var(--tab-bar-height);
             background-color: var(--tab-bar-bg);
             border-top: 1px solid var(--border-color);
             display: flex; justify-content: space-around; align-items: center;
-            /* padding-bottomでiPhone下部の余白を確保 */
             padding-bottom: env(safe-area-inset-bottom);
             padding-top: 5px;
             flex-shrink: 0;
@@ -197,17 +190,15 @@
             background: none; border: none; color: var(--sub-text-color);
             display: flex; flex-direction: column; align-items: center;
             font-size: 10px; cursor: pointer; flex: 1;
-            /* アイコンとテキストの配置調整 */
             height: 45px; 
             justify-content: flex-start;
         }
         .tab-btn .icon { font-size: 20px; margin-bottom: 2px; }
         .tab-btn.active { color: var(--accent-color); }
 
-        /* Edit Action Bar - 位置調整 */
+        /* Edit Action Bar */
         #edit-action-bar {
             position: absolute; 
-            /* タブバーの高さ＋セーフエリア分だけ上に配置 */
             bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
             left: 0; right: 0;
             height: 50px; background: var(--item-bg);
@@ -332,13 +323,7 @@
                 <div class="setting-item">
                     <button id="force-update" style="color: var(--accent-color); font-weight:bold;">アプリを最新版に更新</button>
                 </div>
-                <div class="setting-item">
-                    <button id="backup-download">データをファイルに書き出し (JSON)</button>
-                </div>
-                <div class="setting-item">
-                    <button id="backup-restore">ファイルから読み込み</button>
-                    <input type="file" id="restore-input" style="display:none" accept=".json">
-                </div>
+                <!-- JSONバックアップ機能は削除しました -->
             </div>
         </div>
     </main>
@@ -405,50 +390,6 @@
         let selectedMemoIds = new Set();
         let editingMemoId = null;
         let inlineSearchQuery = '';
-
-        // DOM要素
-        const els = {
-            headerTitle: document.getElementById('header-title'),
-            backBtn: document.getElementById('back-btn'),
-            editBtn: document.getElementById('edit-btn'),
-            addBtn: document.getElementById('add-btn'),
-            searchIconBtn: document.getElementById('search-icon-btn'),
-            
-            views: {
-                memoList: document.getElementById('view-memo-list'),
-                folderList: document.getElementById('view-folder-list'),
-                folderDetail: document.getElementById('view-folder-detail'),
-                editor: document.getElementById('view-editor'),
-                search: document.getElementById('view-search'),
-                settings: document.getElementById('view-settings'),
-            },
-            lists: {
-                memo: document.getElementById('memo-list-ul'),
-                folder: document.getElementById('folder-list-ul'),
-                folderDetail: document.getElementById('folder-detail-ul'),
-                search: document.getElementById('search-list-ul'),
-            },
-            editor: {
-                title: document.getElementById('title-input'),
-                textarea: document.getElementById('memo-editor'),
-            },
-            searchBars: {
-                memo: document.getElementById('memo-search-bar'),
-                folder: document.getElementById('folder-search-bar'),
-                folderDetail: document.getElementById('folder-detail-search-bar'),
-            },
-            searchInput: document.getElementById('search-input'),
-            tabBar: document.getElementById('tab-bar'),
-            editActionBar: document.getElementById('edit-action-bar'),
-            
-            overlay: document.getElementById('modal-overlay'),
-            folderModal: document.getElementById('folder-modal'),
-            newFolderName: document.getElementById('new-folder-name'),
-            colorPicker: document.getElementById('color-picker'),
-            
-            moveModal: document.getElementById('move-modal'),
-            moveList: document.getElementById('move-target-list'),
-        };
 
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
@@ -535,12 +476,49 @@
             document.getElementById('action-export').addEventListener('click', exportSelectedToTxt);
             document.getElementById('move-cancel').addEventListener('click', closeModal);
 
-            document.getElementById('backup-download').addEventListener('click', downloadBackup);
-            document.getElementById('backup-restore').addEventListener('click', () => document.getElementById('restore-input').click());
-            document.getElementById('restore-input').addEventListener('change', restoreBackup);
             document.getElementById('sort-toggle').addEventListener('click', toggleSort);
             document.getElementById('force-update').addEventListener('click', forceUpdateApp);
         }
+
+        const els = {
+            headerTitle: document.getElementById('header-title'),
+            backBtn: document.getElementById('back-btn'),
+            editBtn: document.getElementById('edit-btn'),
+            addBtn: document.getElementById('add-btn'),
+            searchIconBtn: document.getElementById('search-icon-btn'),
+            views: {
+                memoList: document.getElementById('view-memo-list'),
+                folderList: document.getElementById('view-folder-list'),
+                folderDetail: document.getElementById('view-folder-detail'),
+                editor: document.getElementById('view-editor'),
+                search: document.getElementById('view-search'),
+                settings: document.getElementById('view-settings'),
+            },
+            lists: {
+                memo: document.getElementById('memo-list-ul'),
+                folder: document.getElementById('folder-list-ul'),
+                folderDetail: document.getElementById('folder-detail-ul'),
+                search: document.getElementById('search-list-ul'),
+            },
+            editor: {
+                title: document.getElementById('title-input'),
+                textarea: document.getElementById('memo-editor'),
+            },
+            searchBars: {
+                memo: document.getElementById('memo-search-bar'),
+                folder: document.getElementById('folder-search-bar'),
+                folderDetail: document.getElementById('folder-detail-search-bar'),
+            },
+            searchInput: document.getElementById('search-input'),
+            tabBar: document.getElementById('tab-bar'),
+            editActionBar: document.getElementById('edit-action-bar'),
+            overlay: document.getElementById('modal-overlay'),
+            folderModal: document.getElementById('folder-modal'),
+            newFolderName: document.getElementById('new-folder-name'),
+            colorPicker: document.getElementById('color-picker'),
+            moveModal: document.getElementById('move-modal'),
+            moveList: document.getElementById('move-target-list'),
+        };
 
         function loadData() {
             const m = localStorage.getItem('local_memos');
@@ -622,7 +600,18 @@
 
         function goBack() {
             if (els.views.editor.classList.contains('active')) {
-                saveCurrentMemo();
+                // 【機能追加】空メモ自動削除
+                const memo = memos.find(m => m.id === editingMemoId);
+                if (memo) {
+                    const isEmpty = !memo.text.trim() && (!memo.title || !memo.title.trim());
+                    if (isEmpty) {
+                        memos = memos.filter(m => m.id !== editingMemoId);
+                        saveData();
+                    } else {
+                        saveCurrentMemo();
+                    }
+                }
+                
                 editingMemoId = null;
                 els.views.editor.classList.remove('active');
                 els.tabBar.classList.remove('hidden');
@@ -1124,42 +1113,6 @@
             saveData();
             closeModal();
             toggleEditMode();
-        }
-
-        function downloadBackup() {
-            const data = { memos, folders, settings };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-        }
-
-        function restoreBackup(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if (data.memos && data.folders) {
-                        if(confirm('現在のデータを上書きして復元しますか？')) {
-                            memos = data.memos;
-                            folders = data.folders;
-                            if(data.settings) settings = data.settings;
-                            saveData();
-                            alert('復元しました');
-                            location.reload();
-                        }
-                    } else {
-                        alert('不正なファイル形式です');
-                    }
-                } catch(err) {
-                    alert('読み込みエラー');
-                }
-            };
-            reader.readAsText(file);
         }
 
         function toggleSort() {
