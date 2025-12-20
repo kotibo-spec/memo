@@ -24,6 +24,11 @@
             --base-font-size: 16px;
             --list-title-size: 16px;
             --list-date-size: 11px;
+            
+            /* タブバーの基本高さ */
+            --tab-bar-height: 55px;
+            /* セーフエリア込みの下部スペース計算 */
+            --safe-area-bottom: env(safe-area-inset-bottom, 20px);
         }
 
         /* 文字サイズ変更用クラス */
@@ -37,7 +42,10 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
-            height: 100vh; display: flex; flex-direction: column;
+            /* iPhoneのアドレスバー対策: dvhを使う */
+            height: 100vh;
+            height: 100dvh; 
+            display: flex; flex-direction: column;
             overflow: hidden;
             font-size: var(--base-font-size);
         }
@@ -66,6 +74,8 @@
             width: 100%; padding: 8px; border-radius: 8px;
             background: #2c2c2e; border: none; color: #fff; font-size: 14px;
             outline: none;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         /* Main Content */
@@ -73,7 +83,7 @@
         
         .view { 
             display: none; 
-            padding-bottom: 80px; 
+            padding-bottom: 20px; 
             height: 100%; 
             overflow-y: auto; 
             -webkit-overflow-scrolling: touch;
@@ -142,6 +152,8 @@
             padding: 16px 16px 8px 16px; font-size: 18px; font-weight: bold;
             outline: none; width: 100%;
             flex-shrink: 0; 
+            -webkit-appearance: none;
+            appearance: none;
         }
         #memo-editor {
             flex: 1; 
@@ -159,6 +171,7 @@
             width: 100%; padding: 8px 12px; border-radius: 10px;
             background: #1c1c1e; border: none; color: #fff; font-size: 16px;
             -webkit-appearance: none;
+            appearance: none;
         }
         
         .list-section-header {
@@ -166,25 +179,37 @@
             font-size: 12px; font-weight: bold; border-bottom: 1px solid var(--border-color);
         }
 
-        /* Tab Bar */
+        /* Tab Bar - ここを修正 */
         #tab-bar {
-            height: 55px; background-color: var(--tab-bar-bg);
+            /* 高さ自動調整でセーフエリアに対応 */
+            height: auto; 
+            min-height: var(--tab-bar-height);
+            background-color: var(--tab-bar-bg);
             border-top: 1px solid var(--border-color);
             display: flex; justify-content: space-around; align-items: center;
+            /* padding-bottomでiPhone下部の余白を確保 */
             padding-bottom: env(safe-area-inset-bottom);
+            padding-top: 5px;
             flex-shrink: 0;
+            z-index: 100;
         }
         .tab-btn {
             background: none; border: none; color: var(--sub-text-color);
             display: flex; flex-direction: column; align-items: center;
             font-size: 10px; cursor: pointer; flex: 1;
+            /* アイコンとテキストの配置調整 */
+            height: 45px; 
+            justify-content: flex-start;
         }
         .tab-btn .icon { font-size: 20px; margin-bottom: 2px; }
         .tab-btn.active { color: var(--accent-color); }
 
-        /* Edit Action Bar */
+        /* Edit Action Bar - 位置調整 */
         #edit-action-bar {
-            position: absolute; bottom: 55px; left: 0; right: 0;
+            position: absolute; 
+            /* タブバーの高さ＋セーフエリア分だけ上に配置 */
+            bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+            left: 0; right: 0;
             height: 50px; background: var(--item-bg);
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 10px; border-top: 1px solid var(--border-color);
@@ -203,6 +228,7 @@
         .font-size-group { display: flex; gap: 10px; }
         .font-size-group button { flex: 1; }
         .font-size-group button.active { background: var(--accent-color); border-color: var(--accent-color); color: #fff; }
+        .desc { font-size: 12px; color: var(--sub-text-color); margin-top: 5px; }
 
         /* Modal */
         .modal {
@@ -739,7 +765,6 @@
             }
             
             memos.forEach(m => totalChars += m.text.length);
-            // エディタが開いていない時のみ更新
             if (!els.views.editor.classList.contains('active')) {
                 els.headerTitle.textContent = `計 ${totalChars}`;
             }
@@ -949,7 +974,6 @@
             }
         }
 
-        // --- txt書き出し (Web Share API) ---
         async function exportSelectedToTxt() {
             if (selectedMemoIds.size === 0) return;
             let content = '';
@@ -979,22 +1003,18 @@
             const fileName = `export_${new Date().toISOString().slice(0,10)}.txt`;
             const file = new File([content], fileName, { type: 'text/plain' });
 
-            // iOS/Androidの共有メニュー呼び出し
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
                         files: [file],
                         title: 'メモ書き出し',
-                        text: '選択したメモの書き出しファイルです。'
                     });
                 } catch (err) {
                     if (err.name !== 'AbortError') {
-                        // 共有キャンセル以外でエラーなら従来方式
                         downloadFileFallback(file);
                     }
                 }
             } else {
-                // PCなど非対応環境
                 downloadFileFallback(file);
             }
             toggleEditMode();
@@ -1143,7 +1163,6 @@
         }
 
         function toggleSort() {
-            // 更新順 -> 作成順 -> 名前順 のループ
             if (sortOrder === 'updated') sortOrder = 'created';
             else if (sortOrder === 'created') sortOrder = 'name';
             else sortOrder = 'updated';
