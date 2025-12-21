@@ -23,7 +23,7 @@
             --tab-bar-bg: #161616;
             
             --base-font-size: 16px;
-            --list-title-size: 15px; /* 少し小さくして一覧性向上 */
+            --list-title-size: 15px;
             --list-date-size: 10px;
             
             --tab-bar-height: 50px;
@@ -35,7 +35,6 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        /* スクロールバウンス防止 */
         html, body {
             margin: 0; padding: 0;
             background-color: var(--bg-color);
@@ -48,16 +47,27 @@
             display: flex; flex-direction: column;
         }
 
-        /* Header */
+        /* Header - 修正: タイトルを絶対配置で中央固定 */
         header {
             height: 44px; display: flex; align-items: center; justify-content: space-between;
             padding: 0 12px; border-bottom: 1px solid var(--border-color);
             background: rgba(20,20,20,0.95); 
             z-index: 100; flex-shrink: 0;
+            position: relative; /* 子要素の絶対配置基準 */
         }
-        .text-btn { background: none; border: none; color: var(--accent-color); font-size: 16px; padding: 5px; cursor: pointer; min-width: 44px; }
-        .icon-btn { background: none; border: none; color: var(--accent-color); font-size: 22px; padding: 5px; cursor: pointer; min-width: 44px; }
+        .text-btn { background: none; border: none; color: var(--accent-color); font-size: 16px; padding: 5px; cursor: pointer; min-width: 44px; z-index: 101; }
+        .icon-btn { background: none; border: none; color: var(--accent-color); font-size: 22px; padding: 5px; cursor: pointer; min-width: 44px; z-index: 101; }
+        
+        .header-center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 100;
+        }
         #header-title { font-size: 14px; font-weight: bold; color: var(--text-color); }
+        
         .hidden { display: none !important; }
 
         /* Inline Search Bar */
@@ -85,7 +95,6 @@
         }
         .view.active { display: block; }
 
-        /* エディタ画面 */
         #view-editor {
             padding-bottom: 0 !important;
             overflow: hidden !important;
@@ -105,33 +114,29 @@
         /* Lists & Swipe Actions */
         .list-group { list-style: none; padding: 0; margin: 0; overflow-x: hidden; }
         
-        /* スワイプコンテナ */
         .list-item-container {
             position: relative;
-            background-color: var(--danger-color); /* 右背景（削除色） */
+            background-color: var(--danger-color);
             overflow: hidden;
             border-bottom: 1px solid var(--border-color);
         }
         
-        /* 左背景（複製色）を実現するための要素 */
         .list-item-bg-left {
             position: absolute; top: 0; bottom: 0; left: 0; width: 50%;
             background-color: var(--copy-color);
             z-index: 1;
         }
 
-        /* スワイプされる中身 */
         .list-item-content-box {
             position: relative;
             background-color: var(--bg-color);
             z-index: 2;
-            padding: 8px 12px; /* 縦幅を減らす */
+            padding: 8px 12px;
             display: flex; align-items: center; justify-content: space-between;
             transition: transform 0.2s ease-out;
             min-height: 50px;
         }
         
-        /* スワイプアクションボタン */
         .swipe-btn {
             position: absolute; top: 0; bottom: 0; width: 80px;
             display: flex; align-items: center; justify-content: center;
@@ -145,7 +150,7 @@
             padding: 12px 16px;
         }
 
-        .memo-content { flex: 1; min-width: 0; pointer-events: none; /* スワイプ中の誤タップ防止 */ }
+        .memo-content { flex: 1; min-width: 0; pointer-events: none; }
         .memo-title { 
             font-size: var(--list-title-size); 
             font-weight: bold; 
@@ -176,6 +181,30 @@
         .editing .folder-edit-palette { display: flex; }
         .mini-swatch {
             width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        /* Editor Layout */
+        .editor-container {
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+            overflow: hidden; 
+        }
+        #title-input {
+            background: var(--bg-color); color: var(--text-color);
+            border: none; border-bottom: 1px solid var(--border-color);
+            padding: 16px 16px 8px 16px; font-size: 18px; font-weight: bold;
+            outline: none; width: 100%;
+            flex-shrink: 0; 
+            -webkit-appearance: none; appearance: none;
+        }
+        #memo-editor {
+            flex: 1; 
+            background: var(--bg-color);
+            color: var(--text-color); border: none; padding: 16px;
+            font-size: var(--base-font-size); 
+            resize: none; outline: none; line-height: 1.5;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
 
         /* Search Box */
@@ -315,7 +344,10 @@
 
         <!-- エディタ -->
         <div id="view-editor" class="view">
-            <textarea id="memo-editor" placeholder="内容を入力..."></textarea>
+            <div class="editor-container">
+                <input type="text" id="title-input" placeholder="タイトル (未設定時は「新しいメモ」)">
+                <textarea id="memo-editor" placeholder="内容を入力..."></textarea>
+            </div>
         </div>
 
         <!-- 設定 -->
@@ -340,10 +372,7 @@
                 <div class="setting-item">
                     <button id="backup-download">データをファイルに書き出し (JSON)</button>
                 </div>
-                <div class="setting-item">
-                    <button id="backup-restore">ファイルから読み込み</button>
-                    <input type="file" id="restore-input" style="display:none" accept=".json">
-                </div>
+                <!-- ファイル読み込みは削除済み -->
             </div>
         </div>
     </main>
@@ -410,7 +439,7 @@
         let selectedMemoIds = new Set();
         let editingMemoId = null;
         let inlineSearchQuery = '';
-        let editingFolderId = null; // フォルダ名変更用
+        let editingFolderId = null; 
 
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
@@ -446,6 +475,7 @@
                 search: document.getElementById('search-list-ul'),
             },
             editor: {
+                title: document.getElementById('title-input'),
                 textarea: document.getElementById('memo-editor'),
             },
             searchBars: {
@@ -519,9 +549,11 @@
             els.editBtn.addEventListener('click', toggleEditMode);
             els.backBtn.addEventListener('click', goBack);
 
-            els.editor.textarea.addEventListener('input', () => {
-                els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;
-                saveCurrentMemo();
+            [els.editor.title, els.editor.textarea].forEach(el => {
+                el.addEventListener('input', () => {
+                    els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;
+                    saveCurrentMemo();
+                });
             });
 
             els.searchInput.addEventListener('input', (e) => performSearch(e.target.value));
@@ -537,8 +569,7 @@
             document.getElementById('move-cancel').addEventListener('click', closeModal);
 
             document.getElementById('backup-download').addEventListener('click', downloadBackup);
-            document.getElementById('backup-restore').addEventListener('click', () => document.getElementById('restore-input').click());
-            document.getElementById('restore-input').addEventListener('change', restoreBackup);
+            // restore-input イベントリスナーは削除
             document.getElementById('sort-toggle').addEventListener('click', toggleSort);
             document.getElementById('force-update').addEventListener('click', forceUpdateApp);
         }
@@ -623,11 +654,10 @@
 
         function goBack() {
             if (els.views.editor.classList.contains('active')) {
-                // 空メモ削除判定
                 const memo = memos.find(m => m.id === editingMemoId);
                 if (memo) {
-                    // 本文が空なら削除
-                    if (!memo.text.trim()) {
+                    const isEmpty = !memo.text.trim() && (!memo.title || !memo.title.trim());
+                    if (isEmpty) {
                         memos = memos.filter(m => m.id !== editingMemoId);
                         saveData();
                     } else {
@@ -639,7 +669,6 @@
                 els.views.editor.classList.remove('active');
                 els.tabBar.classList.remove('hidden');
                 
-                // 元の画面に戻る
                 if (currentTab === 'memo') {
                     els.views.memoList.classList.add('active');
                     renderMemoList();
@@ -703,7 +732,6 @@
             return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         }
 
-        // リスト描画ヘルパー: スワイプ対応
         function renderList(ulElement, listData, append = false) {
             if (!append) ulElement.innerHTML = ''; 
             
@@ -711,11 +739,9 @@
                 const li = document.createElement('li');
                 li.className = 'list-item-container';
                 
-                // 日付（1行表示）
                 const cDate = formatDateFull(item.createdAt || item.updatedAt);
                 const uDate = formatDateFull(item.updatedAt);
                 
-                // タイトル（1行目の20文字）
                 let firstLine = item.text.split('\n')[0] || '新しいメモ';
                 if (firstLine.length > 20) firstLine = firstLine.substring(0, 20) + '...';
                 
@@ -743,12 +769,11 @@
                 
                 const contentBox = li.querySelector('.list-item-content-box');
                 
-                // スワイプイベント設定
                 let startX = 0;
                 let currentTranslate = 0;
                 
                 contentBox.addEventListener('touchstart', (e) => {
-                    if (isEditingList) return; // 編集モード中はスワイプ無効
+                    if (isEditingList) return;
                     startX = e.touches[0].clientX;
                     contentBox.style.transition = 'none';
                 }, {passive: true});
@@ -756,31 +781,26 @@
                 contentBox.addEventListener('touchmove', (e) => {
                     if (isEditingList) return;
                     const diff = e.touches[0].clientX - startX;
-                    // 上限下限
                     if (diff > 80) currentTranslate = 80;
                     else if (diff < -80) currentTranslate = -80;
                     else currentTranslate = diff;
-                    
                     contentBox.style.transform = `translateX(${currentTranslate}px)`;
                 }, {passive: true});
 
                 contentBox.addEventListener('touchend', () => {
                     if (isEditingList) return;
                     contentBox.style.transition = 'transform 0.2s ease-out';
-                    // しきい値を超えたら開く
                     if (currentTranslate > 40) {
-                        contentBox.style.transform = `translateX(80px)`; // 右へ（複製）
+                        contentBox.style.transform = `translateX(80px)`;
                     } else if (currentTranslate < -40) {
-                        contentBox.style.transform = `translateX(-80px)`; // 左へ（削除）
+                        contentBox.style.transform = `translateX(-80px)`;
                     } else {
-                        contentBox.style.transform = `translateX(0)`; // 戻る
+                        contentBox.style.transform = `translateX(0)`;
                     }
                 });
 
-                // クリックイベント（コンテンツ部分）
                 contentBox.addEventListener('click', (e) => {
                     if (Math.abs(currentTranslate) > 10) {
-                        // スワイプしてた場合は戻すだけ
                         currentTranslate = 0;
                         contentBox.style.transform = `translateX(0)`;
                         return;
@@ -796,14 +816,13 @@
             else document.body.classList.remove('editing');
         }
 
-        // 個別削除・複製（スワイプ用）
         function deleteOne(id, e) {
             e.stopPropagation();
             if(confirm('削除しますか？')) {
                 memos = memos.filter(m => m.id !== id);
                 saveData();
             } else {
-                render(); // 戻す
+                render();
             }
         }
         function copyOne(id, e) {
@@ -831,6 +850,7 @@
             updateHeaderCount(list);
         }
 
+        // フォルダ一覧 (スワイプ機能・編集機能 修正版)
         function renderFolderList() {
             els.lists.folder.innerHTML = '';
             let targetFolders = folders;
@@ -859,11 +879,14 @@
                 const dateStr = formatDateFull(f.createdAt);
 
                 li.innerHTML = `
+                    <div class="list-item-bg-left"></div>
+                    <div class="swipe-btn copy" onclick="copyFolderOne('${f.id}', event)">複製</div>
+                    <div class="swipe-btn delete" onclick="deleteFolderOne('${f.id}', event)">削除</div>
                     <div class="list-item-content-box" style="background-color:${f.color}; color:#fff; font-weight:bold;">
-                        <div style="display:flex; align-items:center;">
+                        <div style="display:flex; align-items:center; width:100%;">
                             <input type="checkbox" class="edit-checkbox" data-id="${f.id}" data-type="folder">
-                            <div>
-                                <span class="memo-content folder-name-span" data-id="${f.id}">${f.name}</span>
+                            <div style="flex:1;">
+                                <span class="memo-content">${f.name}</span>
                                 <div class="memo-date" style="color:rgba(255,255,255,0.7); font-weight:normal;">作成:${dateStr}</div>
                             </div>
                         </div>
@@ -874,16 +897,46 @@
                     </div>
                 `;
                 
-                // コンテンツクリック（通常は開く、編集モードで名前タップならリネーム）
                 const contentBox = li.querySelector('.list-item-content-box');
+                
+                // フォルダスワイプロジック
+                let startX = 0;
+                let currentTranslate = 0;
+                
+                contentBox.addEventListener('touchstart', (e) => {
+                    if (isEditingList) return;
+                    startX = e.touches[0].clientX;
+                    contentBox.style.transition = 'none';
+                }, {passive: true});
+
+                contentBox.addEventListener('touchmove', (e) => {
+                    if (isEditingList) return;
+                    const diff = e.touches[0].clientX - startX;
+                    if (diff > 80) currentTranslate = 80;
+                    else if (diff < -80) currentTranslate = -80;
+                    else currentTranslate = diff;
+                    contentBox.style.transform = `translateX(${currentTranslate}px)`;
+                }, {passive: true});
+
+                contentBox.addEventListener('touchend', () => {
+                    if (isEditingList) return;
+                    contentBox.style.transition = 'transform 0.2s ease-out';
+                    if (currentTranslate > 40) contentBox.style.transform = `translateX(80px)`;
+                    else if (currentTranslate < -40) contentBox.style.transform = `translateX(-80px)`;
+                    else contentBox.style.transform = `translateX(0)`;
+                });
+
                 contentBox.onclick = (e) => {
+                    if (Math.abs(currentTranslate) > 10) {
+                        currentTranslate = 0;
+                        contentBox.style.transform = `translateX(0)`;
+                        return;
+                    }
                     if (e.target.type === 'checkbox' || e.target.classList.contains('mini-swatch')) return;
                     
                     if (isEditingList) {
-                        // 編集モードでフォルダ名をタップした時
-                        if (e.target.classList.contains('folder-name-span')) {
-                            openFolderRename(f.id, f.name);
-                        }
+                        // 編集モード中はタップでリネーム（全域判定に変更）
+                        openFolderRename(f.id, f.name);
                     } else {
                         openFolderDetail(f.id);
                     }
@@ -909,6 +962,52 @@
             
             if (isEditingList) document.body.classList.add('editing');
             else document.body.classList.remove('editing');
+        }
+
+        // フォルダ個別削除・複製
+        function deleteFolderOne(id, e) {
+            e.stopPropagation();
+            if(confirm('フォルダを削除しますか？中身は未分類になります。')) {
+                folders = folders.filter(f => f.id !== id);
+                memos.forEach(m => {
+                    if (m.folderId === id) m.folderId = null;
+                });
+                saveData();
+            } else {
+                render();
+            }
+        }
+        
+        function copyFolderOne(id, e) {
+            e.stopPropagation();
+            const f = folders.find(folder => folder.id === id);
+            if(f) {
+                const newFolderId = Date.now().toString();
+                const newFolder = {
+                    ...f,
+                    id: newFolderId,
+                    name: f.name + 'のコピー',
+                    createdAt: new Date().toISOString()
+                };
+                folders.push(newFolder);
+                
+                // 中身のメモも複製
+                memos.forEach(m => {
+                    if(m.folderId === id) {
+                        const copyMemo = {
+                            ...m,
+                            id: Date.now().toString() + Math.random().toString().slice(2,5),
+                            folderId: newFolderId,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        };
+                        memos.push(copyMemo);
+                    }
+                });
+                saveData();
+                render(); // 強制再描画
+                alert(`フォルダ「${newFolder.name}」として複製しました`);
+            }
         }
 
         function changeFolderColor(folderId, newColor, event) {
@@ -940,7 +1039,7 @@
 
             hits.forEach(item => {
                 const li = document.createElement('li');
-                li.className = 'list-item-container'; // 検索結果はスワイプなしの簡易表示にする
+                li.className = 'list-item-container'; 
                 li.style.borderBottom = '1px solid #38383a';
                 li.style.padding = '10px 16px';
                 li.style.display = 'flex'; li.style.justifyContent = 'space-between'; li.style.alignItems='center';
@@ -988,8 +1087,10 @@
             if (id) {
                 const memo = memos.find(m => m.id === id);
                 els.editor.textarea.value = memo.text;
+                els.editor.title.value = memo.title || ''; 
             } else {
                 els.editor.textarea.value = '';
+                els.editor.title.value = '';
                 const newMemo = {
                     id: Date.now().toString(),
                     text: '',
@@ -1002,7 +1103,6 @@
             }
             
             els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;
-            // キーボードは開かず、スクロールを一番上へ
             els.editor.textarea.scrollTop = 0;
             els.editor.textarea.blur(); 
         }
@@ -1149,7 +1249,6 @@
             });
         }
 
-        // フォルダ作成・編集
         function openFolderModal() {
             editingFolderId = null;
             els.folderModalTitle.textContent = '新規フォルダ';
@@ -1183,11 +1282,9 @@
             if (!name) return;
             
             if (editingFolderId) {
-                // リネーム
                 const f = folders.find(folder => folder.id === editingFolderId);
                 if(f) f.name = name;
             } else {
-                // 新規作成
                 const color = document.querySelector('.color-swatch.selected').style.backgroundColor;
                 folders.push({
                     id: Date.now().toString(),
@@ -1258,6 +1355,7 @@
             if (sortOrder === 'updated') sortOrder = 'created';
             else if (sortOrder === 'created') sortOrder = 'name';
             else sortOrder = 'updated';
+            
             saveData();
             updateSortStatusText();
         }
@@ -1281,34 +1379,8 @@
             a.click();
         }
 
-        function restoreBackup(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if (data.memos && data.folders) {
-                        if(confirm('復元しますか？')) {
-                            memos = data.memos;
-                            folders = data.folders;
-                            if(data.settings) settings = data.settings;
-                            saveData();
-                            alert('復元しました');
-                            location.reload();
-                        }
-                    } else {
-                        alert('形式エラー');
-                    }
-                } catch(err) {
-                    alert('読込エラー');
-                }
-            };
-            reader.readAsText(file);
-        }
-
         function forceUpdateApp() {
-            if(!confirm('アプリを更新しますか？')) return;
+            if(!confirm('アプリを最新版に更新し、再読み込みします。よろしいですか？')) return;
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function(registrations) {
                     for(let registration of registrations) {
