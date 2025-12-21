@@ -93,7 +93,9 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
 #memo-editor {
     flex: 1; width: 100%;
     background: var(--bg-color);
-    color: var(--text-color); border: none; padding: 16px;
+    color: var(--text-color); border: none; 
+    /* 余白設定: 上左右は16px、下は画面の半分(50vh)あける */
+    padding: 16px 16px 50vh 16px;
     font-size: var(--base-font-size); 
     resize: none; outline: none; line-height: 1.5;
     overflow-y: auto; -webkit-overflow-scrolling: touch;
