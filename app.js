@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initColorPicker();
     applySettings(); 
     updateSortStatusText();
-    render();
+    // 起動時に状態を復元（なければトップ）
+    restoreAppState();
     setupEvents();
     
     if ('serviceWorker' in navigator) {
@@ -32,6 +33,8 @@ const els = {
     editBtn: document.getElementById('edit-btn'),
     addBtn: document.getElementById('add-btn'),
     searchIconBtn: document.getElementById('search-icon-btn'),
+    replaceShowBtn: document.getElementById('replace-show-btn'),
+    
     views: {
         memoList: document.getElementById('view-memo-list'),
         folderList: document.getElementById('view-folder-list'),
@@ -57,24 +60,37 @@ const els = {
     searchInput: document.getElementById('search-input'),
     tabBar: document.getElementById('tab-bar'),
     editActionBar: document.getElementById('edit-action-bar'),
+    
     overlay: document.getElementById('modal-overlay'),
+    
     folderModal: document.getElementById('folder-modal'),
     folderModalTitle: document.getElementById('folder-modal-title'),
     newFolderName: document.getElementById('new-folder-name'),
     modalSaveBtn: document.getElementById('modal-save'),
     colorPicker: document.getElementById('color-picker'),
+    
+    replaceModal: document.getElementById('replace-modal'),
+    replaceSearchText: document.getElementById('replace-search-text'),
+    replaceNewText: document.getElementById('replace-new-text'),
+    replaceExecBtn: document.getElementById('replace-exec'),
+    replaceCancelBtn: document.getElementById('replace-cancel'),
+    
     moveModal: document.getElementById('move-modal'),
     moveList: document.getElementById('move-target-list'),
 };
 
+// --- イベント設定 ---
 function setupEvents() {
+    // タブ
     els.tabBar.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (isEditingList) toggleEditMode();
             switchTab(btn.dataset.target);
+            saveAppState(); // 状態保存
         });
     });
 
+    // ヘッダー検索ボタン
     els.searchIconBtn.addEventListener('click', () => {
         if (isEditingList) toggleEditMode();
         let targetBar = null;
@@ -95,9 +111,11 @@ function setupEvents() {
             }
         } else {
             switchTab('search');
+            saveAppState();
         }
     });
 
+    // インライン検索
     Object.values(els.searchBars).forEach(bar => {
         bar.querySelector('input').addEventListener('input', (e) => {
             inlineSearchQuery = e.target.value;
@@ -105,6 +123,7 @@ function setupEvents() {
         });
     });
 
+    // 追加ボタン
     els.addBtn.addEventListener('click', () => {
         if (currentTab === 'memo' || currentTab === 'search') {
             openEditor(null);
@@ -117,30 +136,42 @@ function setupEvents() {
         }
     });
 
+    // 編集・戻る
     els.editBtn.addEventListener('click', toggleEditMode);
     els.backBtn.addEventListener('click', goBack);
 
+    // エディタ入力
     els.editor.textarea.addEventListener('input', () => {
         els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;
         saveCurrentMemo();
     });
 
+    // 全検索
     els.searchInput.addEventListener('input', (e) => performSearch(e.target.value));
 
+    // フォルダモーダル
     document.getElementById('modal-cancel').addEventListener('click', closeModal);
     els.modalSaveBtn.addEventListener('click', saveFolder);
     els.overlay.addEventListener('click', closeModal);
 
+    // 置換機能
+    els.replaceShowBtn.addEventListener('click', openReplaceModal);
+    els.replaceCancelBtn.addEventListener('click', closeModal);
+    els.replaceExecBtn.addEventListener('click', executeReplace);
+
+    // 編集アクション
     document.getElementById('action-delete').addEventListener('click', deleteSelected);
     document.getElementById('action-move').addEventListener('click', openMoveModal);
     document.getElementById('action-copy').addEventListener('click', copySelected);
     document.getElementById('action-export').addEventListener('click', exportSelectedToTxt);
     document.getElementById('move-cancel').addEventListener('click', closeModal);
 
+    // 設定
     document.getElementById('sort-toggle').addEventListener('click', toggleSort);
     document.getElementById('force-update').addEventListener('click', forceUpdateApp);
 }
 
+// --- データ保存・読み込み ---
 function loadData() {
     const m = localStorage.getItem('local_memos');
     const f = localStorage.getItem('local_folders');
@@ -157,6 +188,64 @@ function saveData() {
     localStorage.setItem('local_folders', JSON.stringify(folders));
     localStorage.setItem('local_settings', JSON.stringify(settings));
     localStorage.setItem('local_sort', sortOrder);
+    render();
+}
+
+// --- 状態保存（レジューム機能） ---
+function saveAppState() {
+    const state = {
+        tab: currentTab,
+        folderId: currentFolderId,
+        editingId: editingMemoId
+    };
+    localStorage.setItem('app_state', JSON.stringify(state));
+}
+
+function restoreAppState() {
+    const raw = localStorage.getItem('app_state');
+    if (!raw) {
+        render();
+        return; // 初回
+    }
+    try {
+        const state = JSON.parse(raw);
+        // メモ編集中だった場合
+        if (state.editingId) {
+            const m = memos.find(memo => memo.id === state.editingId);
+            if (m) {
+                // 復元成功
+                currentTab = state.tab || 'memo'; 
+                currentFolderId = state.folderId || null;
+                // タブの状態を先に作ってからエディタを開く
+                switchTab(currentTab);
+                if(currentFolderId) {
+                    openFolderDetail(currentFolderId);
+                }
+                openEditor(state.editingId);
+                return;
+            }
+        }
+        
+        // フォルダ内一覧だった場合
+        if (state.tab === 'folder' && state.folderId) {
+            const f = folders.find(folder => folder.id === state.folderId);
+            if (f) {
+                switchTab('folder');
+                openFolderDetail(state.folderId);
+                return;
+            }
+        }
+
+        // それ以外（通常タブ）
+        if (['memo', 'folder', 'search', 'settings'].includes(state.tab)) {
+            switchTab(state.tab);
+        } else {
+            switchTab('memo');
+        }
+    } catch (e) {
+        console.error('State restore failed', e);
+        switchTab('memo');
+    }
     render();
 }
 
@@ -192,6 +281,7 @@ function switchTab(tab) {
     els.backBtn.classList.add('hidden');
     els.tabBar.classList.remove('hidden');
     els.searchIconBtn.classList.remove('hidden');
+    els.replaceShowBtn.classList.add('hidden'); // 置換ボタンは基本隠す
 
     if (tab === 'memo') {
         els.views.memoList.classList.add('active');
@@ -223,7 +313,7 @@ function goBack() {
     if (els.views.editor.classList.contains('active')) {
         const memo = memos.find(m => m.id === editingMemoId);
         if (memo) {
-            // 本文が空なら削除 (タイトル機能は削除したため本文のみチェック)
+            // 本文が空なら削除
             if (!memo.text.trim()) {
                 memos = memos.filter(m => m.id !== editingMemoId);
                 saveData();
@@ -233,15 +323,20 @@ function goBack() {
         }
         
         editingMemoId = null;
+        saveAppState(); // 状態保存（エディタ閉じた状態）
+
         els.views.editor.classList.remove('active');
         els.tabBar.classList.remove('hidden');
+        
+        // ヘッダーボタン復帰
+        els.replaceShowBtn.classList.add('hidden');
+        els.searchIconBtn.classList.remove('hidden');
         
         if (currentTab === 'memo') {
             els.views.memoList.classList.add('active');
             renderMemoList();
             els.addBtn.classList.remove('hidden');
             els.editBtn.classList.remove('hidden');
-            els.searchIconBtn.classList.remove('hidden');
         } else if (currentTab === 'folder') {
             if (currentFolderId) {
                 els.views.folderDetail.classList.add('active');
@@ -253,16 +348,17 @@ function goBack() {
             }
             els.addBtn.classList.remove('hidden');
             els.editBtn.classList.remove('hidden');
-            els.searchIconBtn.classList.remove('hidden');
         } else if (currentTab === 'search') {
             els.views.search.classList.add('active');
             els.editBtn.classList.add('hidden');
             els.addBtn.classList.remove('hidden');
+            els.searchIconBtn.classList.add('hidden'); // 検索画面なので
         }
         if(!currentFolderId || currentTab !== 'folder') els.backBtn.classList.add('hidden');
 
     } else if (currentFolderId) {
         currentFolderId = null;
+        saveAppState(); // 状態保存（フォルダ閉じた）
         resetSearch(); 
         els.views.folderDetail.classList.remove('active');
         els.views.folderList.classList.add('active');
@@ -340,7 +436,7 @@ function renderList(ulElement, listData, append = false) {
         let currentTranslate = 0;
         
         contentBox.addEventListener('touchstart', (e) => {
-            if (isEditingList) return;
+            if (isEditingList) return; 
             startX = e.touches[0].clientX;
             contentBox.style.transition = 'none';
         }, {passive: true});
@@ -448,7 +544,7 @@ function renderFolderList() {
                 <div style="display:flex; align-items:center; width:100%;">
                     <input type="checkbox" class="edit-checkbox" data-id="${f.id}" data-type="folder">
                     <div style="flex:1;">
-                        <span class="memo-content">${f.name}</span>
+                        <span class="memo-content folder-name-span" data-id="${f.id}">${f.name}</span>
                         <div class="memo-date" style="color:rgba(255,255,255,0.7); font-weight:normal;">作成:${dateStr}</div>
                     </div>
                 </div>
@@ -461,6 +557,7 @@ function renderFolderList() {
         
         const contentBox = li.querySelector('.list-item-content-box');
         
+        // フォルダスワイプロジック
         let startX = 0;
         let currentTranslate = 0;
         
@@ -632,6 +729,7 @@ function updateHeaderCount(list) {
     els.headerTitle.textContent = `計 ${total}`;
 }
 
+// --- エディタ関連 ---
 function openEditor(id, folderId = null) {
     editingMemoId = id;
     Object.values(els.views).forEach(v => v.classList.remove('active'));
@@ -641,6 +739,7 @@ function openEditor(id, folderId = null) {
     els.addBtn.classList.add('hidden');
     els.editBtn.classList.add('hidden');
     els.searchIconBtn.classList.add('hidden');
+    els.replaceShowBtn.classList.remove('hidden'); // 置換ボタン表示
     els.backBtn.classList.remove('hidden');
 
     if (id) {
@@ -662,6 +761,8 @@ function openEditor(id, folderId = null) {
     els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;
     els.editor.textarea.scrollTop = 0;
     els.editor.textarea.blur(); 
+    
+    saveAppState(); // 状態保存
 }
 
 function saveCurrentMemo() {
@@ -671,6 +772,37 @@ function saveCurrentMemo() {
         memo.text = els.editor.textarea.value;
         memo.updatedAt = new Date().toISOString();
         saveData(); 
+    }
+}
+
+// --- 置換機能 ---
+function openReplaceModal() {
+    els.overlay.classList.remove('hidden');
+    els.replaceModal.classList.remove('hidden');
+    els.replaceSearchText.value = '';
+    els.replaceNewText.value = '';
+    els.replaceSearchText.focus();
+}
+
+function executeReplace() {
+    if (!editingMemoId) return;
+    const searchVal = els.replaceSearchText.value;
+    const newVal = els.replaceNewText.value;
+    if (!searchVal) return;
+
+    // 現在のエディタ内容を取得・置換
+    let text = els.editor.textarea.value;
+    const newText = text.replaceAll(searchVal, newVal);
+    
+    if (text !== newText) {
+        els.editor.textarea.value = newText;
+        saveCurrentMemo();
+        // 文字数更新
+        els.headerTitle.textContent = `計 ${newText.length}`;
+        alert('置換しました');
+        closeModal();
+    } else {
+        alert('該当する文字がありませんでした');
     }
 }
 
@@ -832,6 +964,7 @@ function closeModal() {
     els.overlay.classList.add('hidden');
     els.folderModal.classList.add('hidden');
     els.moveModal.classList.add('hidden');
+    els.replaceModal.classList.add('hidden');
 }
 
 function saveFolder() {
@@ -860,6 +993,7 @@ function openFolderDetail(id) {
     els.views.folderDetail.classList.add('active');
     els.backBtn.classList.remove('hidden');
     renderFolderDetail();
+    saveAppState();
 }
 
 function openMoveModal() {
@@ -924,11 +1058,6 @@ function updateSortStatusText() {
         else if (sortOrder === 'created') status.textContent = '作成日時順';
         else status.textContent = '名前順';
     }
-}
-
-function downloadBackup() {
-    // JSON書き出し機能は要望により削除しました
-    alert("この機能は削除されました");
 }
 
 function forceUpdateApp() {
