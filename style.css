@@ -88,17 +88,27 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
 }
 .view.active { display: block; }
 
-/* エディタ */
+/* --- エディタ画面のレイアウト修正 --- */
 #view-editor {
     padding-bottom: 0 !important;
     overflow: hidden !important;
     display: none; flex-direction: column;
     position: relative;
     background: var(--bg-color);
+    height: 100%; /* 高さを確保 */
 }
 #view-editor.active { display: flex !important; }
 
-/* エディタのラッパー（重ね合わせ用） */
+/* 入力エリアのコンテナを伸縮可能に */
+.editor-container {
+    display: flex; 
+    flex-direction: column; 
+    flex: 1; /* 残りのスペースを埋める */
+    min-height: 0; /* 縮小を許可 */
+    overflow: hidden; 
+}
+
+/* 重ね合わせ用ラッパー */
 .editor-wrapper {
     position: relative;
     flex: 1;
@@ -106,13 +116,12 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     overflow: hidden; 
 }
 
-/* 共通フォント設定 & 余白調整 */
+/* 共通フォント設定 & 余白 */
 #memo-editor, #editor-backdrop {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
     font-size: var(--base-font-size);
     line-height: 1.5;
-    /* 下部の余白を50vhから35vhに減らし、キーボード避けに丁度いい高さに */
-    padding: 16px 16px 35vh 16px;
+    padding: 16px 16px 35vh 16px; /* 下部余白 */
     width: 100%;
     box-sizing: border-box;
     word-wrap: break-word;
@@ -120,7 +129,7 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     margin: 0;
 }
 
-/* 背景（ハイライト表示用） */
+/* 背景（ハイライト用） */
 #editor-backdrop {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -130,14 +139,13 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     pointer-events: none; 
 }
 
-/* ハイライトのスタイル */
 mark {
-    background-color: rgba(255, 215, 0, 0.5); /* 濃いめの黄色で見やすく */
+    background-color: rgba(255, 215, 0, 0.5);
     color: transparent;
     border-radius: 2px;
 }
 
-/* 前面の入力エリア */
+/* 入力エリア */
 #memo-editor {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -153,13 +161,13 @@ mark {
 
 /* エディタ内ツールバー */
 #editor-toolbar {
-    height: 45px;
+    height: auto; min-height: 45px;
     background: #1c1c1e;
     border-top: 1px solid var(--border-color);
     display: flex; align-items: center; padding: 0 10px; gap: 10px;
-    flex-shrink: 0;
+    flex-shrink: 0; /* 縮まないように */
     z-index: 50;
-    padding-bottom: var(--safe-bottom);
+    padding-bottom: var(--safe-bottom); /* ホームバー対応 */
 }
 .tool-btn {
     background: none; border: none; color: var(--accent-color);
@@ -279,15 +287,13 @@ mark {
 
 /* Tab Bar */
 #tab-bar {
-    height: 55px; /* 高さを固定 */
+    height: 55px; 
     background-color: var(--tab-bar-bg);
     border-top: 1px solid var(--border-color);
     display: flex; justify-content: space-around; align-items: center;
-    
-    /* 【修正】iPhone下部の余白(safe-area)を削除 */
+    /* 余白削除 */
     padding-bottom: 0; 
     padding-top: 0;
-    
     flex-shrink: 0;
     z-index: 100;
 }
@@ -295,7 +301,7 @@ mark {
     background: none; border: none; color: var(--sub-text-color);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-size: 10px; cursor: pointer; flex: 1;
-    height: 100%; /* 高さ一杯に広げる */
+    height: 100%; 
 }
 .tab-btn .icon { font-size: 24px; margin-bottom: 2px; }
 .tab-btn.active { color: var(--accent-color); }
@@ -303,7 +309,7 @@ mark {
 /* Edit Action Bar */
 #edit-action-bar {
     position: absolute; 
-    bottom: calc(var(--tab-bar-height) + var(--safe-bottom));
+    bottom: calc(55px + var(--safe-bottom)); /* タブバーの上 */
     left: 0; right: 0;
     height: 44px; background: var(--item-bg);
     display: flex; justify-content: space-between; align-items: center;
@@ -321,17 +327,4 @@ mark {
 }
 #modal-overlay {
     position: fixed; top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.5); z-index: 999;
-}
-.modal input {
-    width: 100%; padding: 10px; margin: 10px 0;
-    background: #1c1c1e; border: 1px solid #3a3a3c; color: #fff; border-radius: 8px;
-}
-.color-picker { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-.color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-.color-swatch.selected { border-color: #fff; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.modal-actions button { background: none; border: none; color: var(--accent-color); font-size: 16px; cursor: pointer; }
-
-#move-target-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; }
-#move-target-list li { padding: 10px; border-bottom: 1px solid #3a3a3c; cursor: pointer; }
+    background: rgba(0,0,0
