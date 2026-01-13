@@ -22,11 +22,8 @@
             <span id="header-title">計 0</span>
         </div>
         <div class="header-right">
-            <!-- 普段のボタン -->
             <button id="search-icon-btn" class="icon-btn">🔍</button>
             <button id="add-btn" class="icon-btn">＋</button>
-            <!-- エディタ用ボタン -->
-            <button id="replace-show-btn" class="text-btn hidden" style="font-size:14px;">置換</button>
         </div>
     </header>
 
@@ -66,7 +63,34 @@
 
         <!-- エディタ -->
         <div id="view-editor" class="view">
-            <textarea id="memo-editor" placeholder="内容を入力..."></textarea>
+            <textarea id="memo-editor" placeholder="内容を入力..." spellcheck="false"></textarea>
+            
+            <!-- エディタ内ツールバー（固定フッター） -->
+            <div id="editor-toolbar">
+                <button id="tool-search" class="tool-btn">検索</button>
+                <button id="tool-replace" class="tool-btn">置換</button>
+                <div style="flex:1;"></div>
+                <button id="tool-bottom" class="tool-btn">▼</button>
+            </div>
+
+            <!-- 検索パネル -->
+            <div id="editor-search-panel" class="editor-sub-panel hidden">
+                <input type="text" id="editor-search-input" placeholder="検索ワード">
+                <button id="editor-search-next">次へ</button>
+                <button id="editor-panel-close-search" class="close-x">×</button>
+            </div>
+
+            <!-- 置換パネル -->
+            <div id="editor-replace-panel" class="editor-sub-panel hidden">
+                <div style="display:flex; flex-direction:column; width:100%; gap:5px;">
+                    <input type="text" id="editor-replace-target" placeholder="検索する文字">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="editor-replace-with" placeholder="置換後の文字" style="flex:1;">
+                        <button id="editor-replace-exec">置換</button>
+                    </div>
+                </div>
+                <button id="editor-panel-close-replace" class="close-x" style="align-self: flex-start;">×</button>
+            </div>
         </div>
 
         <!-- 設定 -->
@@ -100,7 +124,7 @@
         <button id="action-export">txt書出し</button>
     </div>
 
-    <!-- フッター -->
+    <!-- フッターナビ -->
     <nav id="tab-bar">
         <button class="tab-btn active" data-target="memo">
             <div class="icon">📝</div>
@@ -120,10 +144,8 @@
         </button>
     </nav>
 
-    <!-- モーダルレイヤー -->
+    <!-- モーダル -->
     <div id="modal-overlay" class="hidden"></div>
-
-    <!-- フォルダ作成・編集モーダル -->
     <div id="folder-modal" class="modal hidden">
         <h3 id="folder-modal-title">新規フォルダ</h3>
         <input type="text" id="new-folder-name" placeholder="フォルダ名">
@@ -134,22 +156,7 @@
             <button id="modal-save">作成</button>
         </div>
     </div>
-
-    <!-- 置換モーダル -->
-    <div id="replace-modal" class="modal hidden">
-        <h3>文字の置換</h3>
-        <p style="font-size:12px; color:#888; margin-bottom:10px;">現在のメモ内の文字を一括置換します。</p>
-        <label style="font-size:12px;">検索する文字</label>
-        <input type="text" id="replace-search-text" placeholder="例: 誤字">
-        <label style="font-size:12px;">置換後の文字</label>
-        <input type="text" id="replace-new-text" placeholder="例: 修正後の文字">
-        <div class="modal-actions">
-            <button id="replace-cancel">キャンセル</button>
-            <button id="replace-exec">一括置換</button>
-        </div>
-    </div>
     
-    <!-- フォルダ移動用モーダル -->
     <div id="move-modal" class="modal hidden">
         <h3>移動先を選択</h3>
         <ul id="move-target-list"></ul>
