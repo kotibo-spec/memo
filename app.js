@@ -49,6 +49,8 @@ const els = {
     },
     editor: {
         textarea: document.getElementById('memo-editor'),
+        backdrop: document.getElementById('editor-backdrop'),
+        highlights: document.getElementById('editor-highlights'),
     },
     // ツールバーとパネル
     toolSearch: document.getElementById('tool-search'),
@@ -57,7 +59,7 @@ const els = {
     
     searchPanel: document.getElementById('editor-search-panel'),
     editorSearchInput: document.getElementById('editor-search-input'),
-    editorSearchNext: document.getElementById('editor-search-next'),
+    editorSearchExec: document.getElementById('editor-search-exec'),
     panelCloseSearch: document.getElementById('editor-panel-close-search'),
     
     replacePanel: document.getElementById('editor-replace-panel'),
@@ -86,6 +88,7 @@ const els = {
 
 // --- イベント設定 ---
 function setupEvents() {
+    // タブ
     els.tabBar.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             if (isEditingList) toggleEditMode();
@@ -94,6 +97,7 @@ function setupEvents() {
         });
     });
 
+    // ヘッダー検索ボタン
     els.searchIconBtn.addEventListener('click', () => {
         if (isEditingList) toggleEditMode();
         let targetBar = null;
@@ -118,6 +122,7 @@ function setupEvents() {
         }
     });
 
+    // インライン検索
     Object.values(els.searchBars).forEach(bar => {
         bar.querySelector('input').addEventListener('input', (e) => {
             inlineSearchQuery = e.target.value;
@@ -125,6 +130,7 @@ function setupEvents() {
         });
     });
 
+    // 追加ボタン
     els.addBtn.addEventListener('click', () => {
         if (currentTab === 'memo' || currentTab === 'search') {
             openEditor(null);
@@ -137,50 +143,59 @@ function setupEvents() {
         }
     });
 
+    // 編集・戻る
     els.editBtn.addEventListener('click', toggleEditMode);
     els.backBtn.addEventListener('click', goBack);
 
-    // エディタ入力（ここが重要：リスト再描画をしない）
+    // エディタ入力（同期スクロール・ハイライト解除・保存）
     els.editor.textarea.addEventListener('input', () => {
         updateHeaderCountOrSelection();
-        saveCurrentMemoSilent(); // 保存のみ、レンダリングなし
+        syncBackdrop(); // 文字が変わったらハイライト層も更新(ハイライトは消える)
+        saveCurrentMemoSilent();
+    });
+    
+    // スクロール同期
+    els.editor.textarea.addEventListener('scroll', () => {
+        els.editor.backdrop.scrollTop = els.editor.textarea.scrollTop;
     });
 
-    // 選択範囲変更時の文字数カウント
     document.addEventListener('selectionchange', () => {
         if (els.views.editor.classList.contains('active') && document.activeElement === els.editor.textarea) {
             updateHeaderCountOrSelection();
         }
     });
 
-    // ツールバー機能
+    // ツールバー
     els.toolBottom.addEventListener('click', () => {
         els.editor.textarea.scrollTop = els.editor.textarea.scrollHeight;
     });
     
-    // エディタ検索
+    // 検索パネル
     els.toolSearch.addEventListener('click', () => {
         els.searchPanel.classList.remove('hidden');
         els.replacePanel.classList.add('hidden');
         els.editorSearchInput.focus();
     });
-    els.panelCloseSearch.addEventListener('click', () => els.searchPanel.classList.add('hidden'));
-    els.editorSearchNext.addEventListener('click', () => {
-        const term = els.editorSearchInput.value;
-        if(term) findNextText(term);
+    els.panelCloseSearch.addEventListener('click', () => {
+        els.searchPanel.classList.add('hidden');
+        clearHighlights();
+    });
+    els.editorSearchExec.addEventListener('click', () => {
+        highlightAll(els.editorSearchInput.value);
     });
 
-    // エディタ置換
+    // 置換パネル
     els.toolReplace.addEventListener('click', () => {
         els.replacePanel.classList.remove('hidden');
         els.searchPanel.classList.add('hidden');
         els.editorReplaceTarget.focus();
     });
-    els.panelCloseReplace.addEventListener('click', () => els.replacePanel.classList.add('hidden'));
+    els.panelCloseReplace.addEventListener('click', () => {
+        els.replacePanel.classList.add('hidden');
+        clearHighlights();
+    });
     els.editorReplaceExec.addEventListener('click', () => {
-        const target = els.editorReplaceTarget.value;
-        const withTxt = els.editorReplaceWith.value;
-        if(target) replaceText(target, withTxt);
+        replaceAll(els.editorReplaceTarget.value, els.editorReplaceWith.value);
     });
 
     els.searchInput.addEventListener('input', (e) => performSearch(e.target.value));
@@ -199,51 +214,76 @@ function setupEvents() {
     document.getElementById('force-update').addEventListener('click', forceUpdateApp);
 }
 
-// --- エディタ内検索・置換ロジック ---
-function findNextText(term) {
-    const text = els.editor.textarea.value;
-    const startPos = els.editor.textarea.selectionEnd; // カーソル位置から検索
-    let nextPos = text.indexOf(term, startPos);
-    
-    // 見つからなければ先頭から
-    if (nextPos === -1) {
-        nextPos = text.indexOf(term, 0);
-    }
+// --- エディタ内 ハイライト・置換ロジック ---
 
-    if (nextPos !== -1) {
-        els.editor.textarea.focus();
-        els.editor.textarea.setSelectionRange(nextPos, nextPos + term.length);
-        // 選択部分が画面外ならスクロール
-        const lineHeight = 24; // 概算
-        const lines = text.substr(0, nextPos).split('\n').length;
-        els.editor.textarea.scrollTop = (lines * lineHeight) - (els.editor.textarea.clientHeight / 2);
-    }
+// テキストとハイライト層を同期（ハイライトなし状態にする）
+function syncBackdrop() {
+    const text = els.editor.textarea.value;
+    // HTMLエスケープして改行を<br>に
+    const safeText = escapeHtml(text).replace(/\n/g, '<br>') + '<br>'; 
+    els.editor.highlights.innerHTML = safeText;
 }
 
-function replaceText(target, withTxt) {
+// 検索ハイライト
+function highlightAll(term) {
+    if (!term) {
+        clearHighlights();
+        return;
+    }
     const text = els.editor.textarea.value;
-    const startPos = els.editor.textarea.selectionStart;
-    const endPos = els.editor.textarea.selectionEnd;
-    const selected = text.substring(startPos, endPos);
-
-    // 選択中の文字がターゲットと一致すればそれを置換、そうでなければ一括か次を検索
-    // 今回はシンプルに「現在選択中なら置換、そうでなければ全体から探して置換」
-    // 要望: 検索置換すると色が一時的に変わる→textareaでは不可のため、選択反転で表現
+    // 正規表現で一括置換 (大文字小文字区別なしなら 'gi')
+    const regex = new RegExp(`(${escapeRegExp(term)})`, 'g');
     
-    if (selected === target) {
-        // 選択部分を置換
-        const newText = text.substring(0, startPos) + withTxt + text.substring(endPos);
+    // マッチした部分を <mark> で囲む
+    let highlightedHTML = escapeHtml(text).replace(regex, '<mark>$1</mark>');
+    highlightedHTML = highlightedHTML.replace(/\n/g, '<br>') + '<br>';
+    
+    els.editor.highlights.innerHTML = highlightedHTML;
+}
+
+function clearHighlights() {
+    syncBackdrop();
+}
+
+// 一括置換
+function replaceAll(target, withTxt) {
+    if (!target) return;
+    const text = els.editor.textarea.value;
+    const newText = text.split(target).join(withTxt); // 単純置換
+    
+    if (text !== newText) {
         els.editor.textarea.value = newText;
         saveCurrentMemoSilent();
-        // 置換後を選択状態に
-        els.editor.textarea.setSelectionRange(startPos, startPos + withTxt.length);
+        
+        // 置換後の文字をハイライトして結果を表示
+        if (withTxt) {
+            highlightAll(withTxt);
+        } else {
+            clearHighlights();
+        }
+        els.headerTitle.textContent = `計 ${newText.length}`;
+        alert('一括置換しました');
     } else {
-        // 一致していない場合、次に見つかるものを探して選択（そしてユーザーにもう一度押させる）
-        findNextText(target);
+        alert('対象が見つかりませんでした');
     }
 }
 
-// --- データ保存・読み込み ---
+// HTMLエスケープ
+function escapeHtml(str) {
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+// 正規表現エスケープ
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// --- データ保存・読み込み (以下既存機能) ---
 function loadData() {
     const m = localStorage.getItem('local_memos');
     const f = localStorage.getItem('local_folders');
@@ -260,17 +300,13 @@ function saveData() {
     localStorage.setItem('local_folders', JSON.stringify(folders));
     localStorage.setItem('local_settings', JSON.stringify(settings));
     localStorage.setItem('local_sort', sortOrder);
-    render(); // 通常保存は再描画する
+    render();
 }
 
-// 保存するが再描画はしない（入力中のパフォーマンス対策）
 function saveDataSilent() {
     localStorage.setItem('local_memos', JSON.stringify(memos));
-    // リストの並び順などが変わる可能性があるため、本来はrenderが必要だが
-    // 入力中はリストが見えないのでスキップする。戻るときにrenderする。
 }
 
-// --- 状態保存（レジューム機能） ---
 function saveAppState() {
     const state = {
         tab: currentTab,
@@ -312,7 +348,6 @@ function restoreAppState() {
             switchTab('memo');
         }
     } catch (e) {
-        console.error('State restore failed', e);
         switchTab('memo');
     }
     render();
@@ -385,8 +420,8 @@ function goBack() {
                 memos = memos.filter(m => m.id !== editingMemoId);
                 saveData();
             } else {
-                saveCurrentMemo(); // ここでは通常保存（render含む）でも良いが
-                saveData(); // 確実に戻った時にリスト更新
+                saveCurrentMemo();
+                saveData();
             }
         }
         
@@ -395,7 +430,6 @@ function goBack() {
 
         els.views.editor.classList.remove('active');
         els.tabBar.classList.remove('hidden');
-        
         els.searchIconBtn.classList.remove('hidden');
         
         if (currentTab === 'memo') {
@@ -749,51 +783,12 @@ function renderFolderDetail() {
     updateHeaderCount(list);
 }
 
-function performSearch(keyword) {
-    const ul = els.lists.search;
-    ul.innerHTML = '';
-    if(!keyword) return;
-
-    const hits = memos.filter(m => m.text.includes(keyword));
-    hits.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-
-    hits.forEach(item => {
-        const li = document.createElement('li');
-        li.className = 'list-item-container'; 
-        li.style.borderBottom = '1px solid #38383a';
-        li.style.padding = '10px 16px';
-        li.style.display = 'flex'; li.style.justifyContent = 'space-between'; li.style.alignItems='center';
-
-        const cDate = formatDateFull(item.createdAt || item.updatedAt);
-        let firstLine = item.text.split('\n')[0] || '新しいメモ';
-        if (firstLine.length > 20) firstLine = firstLine.substring(0, 20) + '...';
-        
-        let folderName = '未分類';
-        if (item.folderId) {
-            const f = folders.find(fd => fd.id === item.folderId);
-            if(f) folderName = f.name;
-        }
-
-        li.innerHTML = `
-            <div class="memo-content">
-                <div class="memo-title">${firstLine} <span style="font-size:10px; color:#888; font-weight:normal; margin-left:5px;">(${folderName})</span></div>
-                <div class="memo-date">作成:${cDate}</div>
-            </div>
-            <span class="memo-meta">${item.text.length}</span>
-        `;
-        li.onclick = () => openEditor(item.id);
-        ul.appendChild(li);
-    });
-    els.headerTitle.textContent = `${hits.length}件 ヒット`;
-}
-
 function updateHeaderCount(list) {
     if (els.views.editor.classList.contains('active')) return;
     const total = list.reduce((sum, item) => sum + item.text.length, 0);
     els.headerTitle.textContent = `計 ${total}`;
 }
 
-// 選択中の文字数カウント、または全体文字数
 function updateHeaderCountOrSelection() {
     const ta = els.editor.textarea;
     if (ta.selectionStart !== ta.selectionEnd) {
@@ -835,6 +830,9 @@ function openEditor(id, folderId = null) {
     els.editor.textarea.scrollTop = 0;
     els.editor.textarea.blur(); 
     
+    // ハイライト初期化
+    syncBackdrop();
+    
     saveAppState(); 
 }
 
@@ -848,7 +846,6 @@ function saveCurrentMemo() {
     }
 }
 
-// 描画なしの保存（入力遅延対策）
 function saveCurrentMemoSilent() {
     if (!editingMemoId) return;
     const memo = memos.find(m => m.id === editingMemoId);
@@ -1017,6 +1014,9 @@ function closeModal() {
     els.overlay.classList.add('hidden');
     els.folderModal.classList.add('hidden');
     els.moveModal.classList.add('hidden');
+    els.replaceModal.classList.add('hidden');
+    els.searchPanel.classList.add('hidden'); // パネルも閉じる
+    clearHighlights(); // ハイライト消去
 }
 
 function saveFolder() {
@@ -1113,7 +1113,6 @@ function updateSortStatusText() {
 }
 
 function downloadBackup() {
-    // JSON書き出し機能は削除
     alert("この機能は削除されました");
 }
 
