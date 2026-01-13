@@ -103,15 +103,16 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     position: relative;
     flex: 1;
     width: 100%;
-    overflow: hidden; /* スクロールは内部で行う */
+    overflow: hidden; 
 }
 
-/* 共通のフォント設定（ズレ防止） */
+/* 共通フォント設定 & 余白調整 */
 #memo-editor, #editor-backdrop {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
     font-size: var(--base-font-size);
     line-height: 1.5;
-    padding: 16px 16px 50vh 16px; /* 余白も一致させる */
+    /* 下部の余白を50vhから35vhに減らし、キーボード避けに丁度いい高さに */
+    padding: 16px 16px 35vh 16px;
     width: 100%;
     box-sizing: border-box;
     word-wrap: break-word;
@@ -124,14 +125,14 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 1;
-    color: transparent; /* 文字自体は透明 */
+    color: transparent; 
     overflow: auto;
-    pointer-events: none; /* クリックなどは前面のtextareaへ */
+    pointer-events: none; 
 }
 
 /* ハイライトのスタイル */
 mark {
-    background-color: rgba(255, 255, 0, 0.4); /* 黄色の半透明 */
+    background-color: rgba(255, 215, 0, 0.5); /* 濃いめの黄色で見やすく */
     color: transparent;
     border-radius: 2px;
 }
@@ -141,7 +142,7 @@ mark {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 2;
-    background: transparent; /* 背景透明にして後ろを見せる */
+    background: transparent; 
     color: var(--text-color);
     border: none;
     resize: none; 
@@ -278,24 +279,25 @@ mark {
 
 /* Tab Bar */
 #tab-bar {
-    height: auto; 
-    min-height: var(--tab-bar-height);
+    height: 55px; /* 高さを固定 */
     background-color: var(--tab-bar-bg);
     border-top: 1px solid var(--border-color);
     display: flex; justify-content: space-around; align-items: center;
-    padding-bottom: var(--safe-bottom);
-    padding-top: 4px;
+    
+    /* 【修正】iPhone下部の余白(safe-area)を削除 */
+    padding-bottom: 0; 
+    padding-top: 0;
+    
     flex-shrink: 0;
     z-index: 100;
 }
 .tab-btn {
     background: none; border: none; color: var(--sub-text-color);
-    display: flex; flex-direction: column; align-items: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-size: 10px; cursor: pointer; flex: 1;
-    height: 42px; 
-    justify-content: flex-start;
+    height: 100%; /* 高さ一杯に広げる */
 }
-.tab-btn .icon { font-size: 20px; margin-bottom: 1px; }
+.tab-btn .icon { font-size: 24px; margin-bottom: 2px; }
 .tab-btn.active { color: var(--accent-color); }
 
 /* Edit Action Bar */
