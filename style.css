@@ -14,6 +14,9 @@
     --list-date-size: 10px;
     
     --tab-bar-height: 50px;
+    /* セーフエリア変数 */
+    --safe-top: env(safe-area-inset-top, 20px);
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
 }
 
 body.fs-small { --base-font-size: 14px; --list-title-size: 13px; --list-date-size: 9px; }
@@ -34,10 +37,14 @@ html, body {
     display: flex; flex-direction: column;
 }
 
-/* Header */
+/* Header - iOSセーフエリア対応 */
 header {
-    height: 44px; display: flex; align-items: center; justify-content: space-between;
-    padding: 0 12px; border-bottom: 1px solid var(--border-color);
+    /* ステータスバー分の高さを確保 */
+    height: calc(44px + var(--safe-top)); 
+    padding-top: var(--safe-top);
+    padding-left: 12px; padding-right: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
     background: rgba(20,20,20,0.95); 
     z-index: 100; flex-shrink: 0;
     position: relative;
@@ -47,7 +54,9 @@ header {
 
 .header-center {
     position: absolute;
-    left: 50%; top: 50%;
+    left: 50%; 
+    /* セーフエリア分ずらして中央配置 */
+    top: calc(50% + (var(--safe-top) / 2)); 
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 100;
@@ -87,6 +96,7 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     padding-bottom: 0 !important;
     overflow: hidden !important;
     display: none; flex-direction: column;
+    position: relative;
 }
 #view-editor.active { display: flex !important; }
 
@@ -94,10 +104,48 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     flex: 1; width: 100%;
     background: var(--bg-color);
     color: var(--text-color); border: none; 
-    padding: 16px 16px 50vh 16px; /* 下部に広い余白 */
+    /* ツールバーの高さ(約45px) + 余白 */
+    padding: 16px 16px 100px 16px; 
     font-size: var(--base-font-size); 
     resize: none; outline: none; line-height: 1.5;
     overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+
+/* エディタ内ツールバー */
+#editor-toolbar {
+    height: 45px;
+    background: #1c1c1e; /* 少し明るい黒 */
+    border-top: 1px solid var(--border-color);
+    display: flex; align-items: center; padding: 0 10px; gap: 10px;
+    flex-shrink: 0;
+    z-index: 50;
+}
+.tool-btn {
+    background: none; border: none; color: var(--accent-color);
+    font-size: 14px; font-weight: bold; cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.tool-btn:active { background: rgba(255,255,255,0.1); }
+
+/* エディタ内サブパネル（検索・置換） */
+.editor-sub-panel {
+    background: #2c2c2e;
+    padding: 8px; border-top: 1px solid var(--border-color);
+    display: flex; gap: 8px; align-items: center;
+    position: absolute; bottom: 45px; left: 0; right: 0; /* ツールバーの上に表示 */
+    z-index: 51;
+}
+.editor-sub-panel input {
+    background: #1c1c1e; border: 1px solid #38383a; color: #fff;
+    padding: 6px; border-radius: 6px; flex: 1; font-size: 14px;
+}
+.editor-sub-panel button {
+    background: #3a3a3c; color: #fff; border: none;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.close-x {
+    background: none !important; color: #8e8e93 !important; font-size: 18px !important; padding: 0 5px !important;
 }
 
 /* Lists & Swipe Actions */
@@ -192,7 +240,8 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     background-color: var(--tab-bar-bg);
     border-top: 1px solid var(--border-color);
     display: flex; justify-content: space-around; align-items: center;
-    padding-bottom: env(safe-area-inset-bottom);
+    /* セーフエリア対応 */
+    padding-bottom: var(--safe-bottom);
     padding-top: 4px;
     flex-shrink: 0;
     z-index: 100;
@@ -210,7 +259,7 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
 /* Edit Action Bar */
 #edit-action-bar {
     position: absolute; 
-    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+    bottom: calc(var(--tab-bar-height) + var(--safe-bottom));
     left: 0; right: 0;
     height: 44px; background: var(--item-bg);
     display: flex; justify-content: space-between; align-items: center;
