@@ -165,12 +165,26 @@ function setupEvents() {
         els.editor.backdrop.scrollTop = els.editor.textarea.scrollTop;
     });
 
-    // 選択範囲変更時の文字数カウント
+    // 選択範囲変更時の文字数カウント（修正版）
     document.addEventListener('selectionchange', () => {
-        if (els.views.editor.classList.contains('active') && document.activeElement === els.editor.textarea) {
+        // エディタが開いていれば、フォーカスに関わらずカウント更新を試みる
+        if (els.views.editor.classList.contains('active')) {
             updateHeaderCountOrSelection();
         }
     });
+
+// 選択中の文字数または全体文字数をヘッダーに表示
+function updateHeaderCountOrSelection() {
+    const ta = els.editor.textarea;
+    // 選択範囲がある場合（開始位置と終了位置が違う場合）
+    if (ta.selectionStart !== ta.selectionEnd) {
+        const count = Math.abs(ta.selectionEnd - ta.selectionStart);
+        els.headerTitle.textContent = `選択: ${count}文字`;
+    } else {
+        // 選択していない場合は全体文字数
+        els.headerTitle.textContent = `計 ${ta.value.length}`;
+    }
+}
 
     // ツールバー機能
     els.toolBottom.addEventListener('click', () => {
