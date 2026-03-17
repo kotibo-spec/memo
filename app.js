@@ -35,6 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, { passive: false });
     
+    // JavaScriptでもpadding-bottomを強制設定（iPhoneキーボード対応）
+    if (els.editor && els.editor.textarea) {
+        setTimeout(() => {
+            els.editor.textarea.style.paddingBottom = '500px';
+        }, 150);
+    }
+    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
@@ -156,6 +163,8 @@ function setupEvents() {
     // iPhoneのキーボード表示時スクロール位置保持
     els.editor.textarea.addEventListener('focus', () => {
         const scrollTop = els.editor.textarea.scrollTop;
+        // JavaScriptでもpaddingを強制設定
+        els.editor.textarea.style.paddingBottom = '500px';
         requestAnimationFrame(() => {
             els.editor.textarea.scrollTop = scrollTop;
             window.scrollTo(0, 0);

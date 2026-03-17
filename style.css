@@ -118,8 +118,7 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
     font-size: var(--base-font-size);
     line-height: 1.5;
-    padding: 16px 16px 16px 16px;
-    padding-bottom: 100vh; /* キーボード裏に隠れないよう大きめに設定 */
+    padding: 16px 16px 500px 16px; /* キーボード裏に隠れないよう大きく設定 */
     width: 100%;
     box-sizing: border-box;
     word-wrap: break-word;
