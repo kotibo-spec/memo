@@ -21,6 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreAppState();
     setupEvents();
     
+    // iPhoneキーボード表示時のスクロール対応
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            if (editingMemoId && els.views.editor.classList.contains('active')) {
+                const scrollTop = els.editor.textarea.scrollTop;
+                requestAnimationFrame(() => {
+                    els.editor.textarea.scrollTop = scrollTop;
+                });
+            }
+        });
+    }
+    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
