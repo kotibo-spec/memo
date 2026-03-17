@@ -21,15 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreAppState();
     setupEvents();
     
-    // iPhoneキーボード表示時の画面移動防止
-    document.addEventListener('touchstart', () => {
-        window.scrollTo(0, 0);
-    }, { passive: false });
-    
-    document.addEventListener('touchmove', (e) => {
-        window.scrollTo(0, 0);
-    }, { passive: false });
-    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
@@ -148,14 +139,11 @@ function setupEvents() {
         saveCurrentMemoSilent(); // 保存のみ
     });
 
-    // iPhoneのキーボード表示時スクロール防止
-    els.editor.textarea.addEventListener('focus', () => {
-        const scrollTop = els.editor.textarea.scrollTop;
-        // キーボード表示後も位置を保持
-        setTimeout(() => {
-            window.scrollTo(0, 0);
+    // iPhoneのキーボード表示時スクロール位置保持
+    els.editor.textarea.addEventListener('focus', () => {\n        const scrollTop = els.editor.textarea.scrollTop;
+        requestAnimationFrame(() => {
             els.editor.textarea.scrollTop = scrollTop;
-        }, 100);
+        });
     });
     
     // スクロール同期 (入力欄とハイライト層を合わせる)
