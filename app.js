@@ -13,9 +13,6 @@ let editingMemoId = null;
 let inlineSearchQuery = '';
 let editingFolderId = null; 
 
-// ★ハイライト維持用の変数
-let activeHighlightTerm = null;
-
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initColorPicker();
@@ -52,24 +49,9 @@ const els = {
     },
     editor: {
         textarea: document.getElementById('memo-editor'),
-        backdrop: document.getElementById('editor-backdrop'),
-        highlights: document.getElementById('editor-highlights'),
     },
     // ツールバーとパネル
-    toolSearch: document.getElementById('tool-search'),
-    toolReplace: document.getElementById('tool-replace'),
     toolBottom: document.getElementById('tool-bottom'),
-    
-    searchPanel: document.getElementById('editor-search-panel'),
-    editorSearchInput: document.getElementById('editor-search-input'),
-    editorSearchExec: document.getElementById('editor-search-exec'),
-    panelCloseSearch: document.getElementById('editor-panel-close-search'),
-    
-    replacePanel: document.getElementById('editor-replace-panel'),
-    editorReplaceTarget: document.getElementById('editor-replace-target'),
-    editorReplaceWith: document.getElementById('editor-replace-with'),
-    editorReplaceExec: document.getElementById('editor-replace-exec'),
-    panelCloseReplace: document.getElementById('editor-panel-close-replace'),
 
     searchBars: {
         memo: document.getElementById('memo-search-bar'),
@@ -150,20 +132,15 @@ function setupEvents() {
     els.editBtn.addEventListener('click', toggleEditMode);
     els.backBtn.addEventListener('click', goBack);
 
-    // エディタ入力（ここが重要：リスト再描画をしない + ハイライト維持）
+    // エディタ入力（ここが重要：リスト再描画をしない）
     els.editor.textarea.addEventListener('input', () => {
         updateHeaderCountOrSelection();
-        
-        // ★文字を入力してもハイライト処理を再実行して維持する
-        renderHighlights(activeHighlightTerm);
         
         saveCurrentMemoSilent(); // 保存のみ
     });
     
     // スクロール同期 (入力欄とハイライト層を合わせる)
-    els.editor.textarea.addEventListener('scroll', () => {
-        els.editor.backdrop.scrollTop = els.editor.textarea.scrollTop;
-    });
+    // ハイライト削除により不要
 
     // 選択範囲変更時の文字数カウント（修正版）
     document.addEventListener('selectionchange', () => {
@@ -190,38 +167,6 @@ function updateHeaderCountOrSelection() {
     els.toolBottom.addEventListener('click', () => {
         els.editor.textarea.scrollTop = els.editor.textarea.scrollHeight;
     });
-    
-    // エディタ検索
-    els.toolSearch.addEventListener('click', () => {
-        els.searchPanel.classList.remove('hidden');
-        els.replacePanel.classList.add('hidden');
-        els.editorSearchInput.focus();
-    });
-    els.panelCloseSearch.addEventListener('click', () => els.searchPanel.classList.add('hidden'));
-    
-    // 検索実行（ハイライトのみ）
-    els.editorSearchExec.addEventListener('click', () => {
-        const term = els.editorSearchInput.value;
-        if(term) {
-            activeHighlightTerm = term; // 検索語を記憶
-            renderHighlights(term);
-        }
-    });
-
-    // エディタ置換
-    els.toolReplace.addEventListener('click', () => {
-        els.replacePanel.classList.remove('hidden');
-        els.searchPanel.classList.add('hidden');
-        els.editorReplaceTarget.focus();
-    });
-    els.panelCloseReplace.addEventListener('click', () => els.replacePanel.classList.add('hidden'));
-    
-    // 一括置換実行
-    els.editorReplaceExec.addEventListener('click', () => {
-        const target = els.editorReplaceTarget.value;
-        const withTxt = els.editorReplaceWith.value;
-        if(target) replaceAllText(target, withTxt);
-    });
 
     els.searchInput.addEventListener('input', (e) => performSearch(e.target.value));
 
@@ -240,58 +185,6 @@ function updateHeaderCountOrSelection() {
 }
 
 // --- エディタ内 ハイライト・置換ロジック ---
-
-// ハイライトを描画（termがnullならクリア）
-function renderHighlights(term) {
-    const text = els.editor.textarea.value;
-    
-    // HTMLエスケープ（タグがそのまま表示されないように）
-    let html = escapeHtml(text);
-    
-    if (term) {
-        // 検索語を <mark> タグで囲む
-        // 特殊文字エスケープ
-        const safeTerm = escapeRegExp(term);
-        const regex = new RegExp(`(${safeTerm})`, 'g');
-        html = html.replace(regex, '<mark>$1</mark>');
-    }
-    
-    // 改行を <br> に変換して表示調整
-    // 最後の改行が無視されないように工夫
-    if (html.slice(-1) === '\n') {
-        html += ' '; 
-    }
-    html = html.replace(/\n/g, '<br>');
-    
-    els.editor.highlights.innerHTML = html;
-}
-
-// 一括置換
-function replaceAllText(target, withTxt) {
-    if (!target) return;
-    const text = els.editor.textarea.value;
-    // 単純な全置換
-    const newText = text.split(target).join(withTxt);
-    
-    if (text !== newText) {
-        els.editor.textarea.value = newText;
-        saveCurrentMemoSilent();
-        
-        // ★置換後の文字をハイライト対象にする
-        if (withTxt) {
-            activeHighlightTerm = withTxt;
-            renderHighlights(withTxt);
-        } else {
-            activeHighlightTerm = null;
-            renderHighlights(null);
-        }
-        
-        els.headerTitle.textContent = `計 ${newText.length}`;
-        alert('一括置換しました');
-    } else {
-        alert('対象が見つかりませんでした');
-    }
-}
 
 // HTMLエスケープ
 function escapeHtml(str) {
@@ -451,9 +344,6 @@ function goBack() {
         }
         
         editingMemoId = null;
-        // ★戻るときにハイライトをクリア
-        activeHighlightTerm = null;
-        renderHighlights(null);
         
         saveAppState(); 
 
@@ -887,9 +777,6 @@ function openEditor(id, folderId = null) {
     els.editor.textarea.scrollTop = 0;
     els.editor.textarea.blur(); 
     
-    // ハイライト初期化
-    renderHighlights(null);
-    
     saveAppState(); 
 }
 
@@ -1071,9 +958,6 @@ function closeModal() {
     els.overlay.classList.add('hidden');
     els.folderModal.classList.add('hidden');
     els.moveModal.classList.add('hidden');
-    els.replaceModal.classList.add('hidden');
-    els.searchPanel.classList.add('hidden'); // パネルも閉じる
-    // clearHighlights()は呼ばない（ハイライト維持のため）
 }
 
 function saveFolder() {
