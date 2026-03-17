@@ -16,11 +16,27 @@ let editingFolderId = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initColorPicker();
-    applySettings(); 
+    applySettings();
     updateSortStatusText();
     restoreAppState();
     setupEvents();
-    
+
+    // iPhoneキーボード表示時のビューポート変更対応
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            // キーボード表示時に画面がスクロールしないようにする
+            if (document.activeElement === els.editor.textarea) {
+                // エディタがフォーカスされている場合のみ対応
+                const scrollTop = els.editor.textarea.scrollTop;
+                requestAnimationFrame(() => {
+                    els.editor.textarea.scrollTop = scrollTop;
+                    // 画面全体のスクロールを防ぐ
+                    window.scrollTo(0, 0);
+                });
+            }
+        });
+    }
+
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }

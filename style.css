@@ -29,7 +29,7 @@ html, body {
     background-color: var(--bg-color);
     color: var(--text-color);
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
-    height: 100vh;
+    height: 100dvh;
     width: 100%;
     overflow: hidden;
     overscroll-behavior: none;
