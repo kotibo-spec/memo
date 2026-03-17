@@ -229,7 +229,8 @@ function saveAppState() {
     const state = {
         tab: currentTab,
         folderId: currentFolderId,
-        editingId: editingMemoId
+        editingId: editingMemoId,
+        editorScrollTop: editingMemoId && els.views.editor.classList.contains('active') ? els.editor.textarea.scrollTop : 0
     };
     localStorage.setItem('app_state', JSON.stringify(state));
 }
@@ -248,7 +249,7 @@ function restoreAppState() {
                 currentTab = state.tab || 'memo'; 
                 switchTab(currentTab);
                 currentFolderId = state.folderId || null; 
-                openEditor(state.editingId);
+                openEditor(state.editingId, null, state.editorScrollTop);
                 return;
             }
         }
@@ -746,7 +747,7 @@ function updateHeaderCount(list) {
     els.headerTitle.textContent = `計 ${total}`;
 }
 
-function openEditor(id, folderId = null) {
+function openEditor(id, folderId = null, savedScrollTop = 0) {
     editingMemoId = id;
     Object.values(els.views).forEach(v => v.classList.remove('active'));
     els.views.editor.classList.add('active');
@@ -760,6 +761,10 @@ function openEditor(id, folderId = null) {
     if (id) {
         const memo = memos.find(m => m.id === id);
         els.editor.textarea.value = memo.text;
+        // 復元可能なスクロール位置があれば使用、新規編集時は0に
+        setTimeout(() => {
+            els.editor.textarea.scrollTop = savedScrollTop;
+        }, 0);
     } else {
         els.editor.textarea.value = '';
         const newMemo = {
@@ -771,10 +776,13 @@ function openEditor(id, folderId = null) {
         };
         memos.unshift(newMemo);
         editingMemoId = newMemo.id;
+        // 新規作成時はスクロール位置をリセット
+        setTimeout(() => {
+            els.editor.textarea.scrollTop = 0;
+        }, 0);
     }
     
     els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;
-    els.editor.textarea.scrollTop = 0;
     els.editor.textarea.blur(); 
     
     saveAppState(); 

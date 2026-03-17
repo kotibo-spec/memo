@@ -131,6 +131,7 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: manipulation;
+    min-height: 0;
 }
 
 /* エディタ内ツールバー */
@@ -146,7 +147,7 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
 .tool-btn {
     background: none; border: none; color: var(--accent-color);
     font-size: 14px; font-weight: bold; cursor: pointer;
-    padding: 5px 10px;
+    padding: 5px 10x;
     border-radius: 5px;
     height: 44px; display: flex; align-items: center;
 }
@@ -279,4 +280,5 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
 }
 #modal-overlay {
     position: fixed; top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0
+    background: rgba(0,0,0,);
+}
