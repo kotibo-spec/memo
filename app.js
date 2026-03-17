@@ -21,6 +21,20 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreAppState();
     setupEvents();
     
+    // iPhoneキーボード表示時のスクロール防止
+    document.addEventListener('scroll', (e) => {
+        if (window.scrollY !== 0 || window.scrollX !== 0) {
+            window.scrollTo(0, 0);
+        }
+    }, { passive: false });
+    
+    // タッチ時も位置をリセット
+    document.addEventListener('touchmove', (e) => {
+        if (window.scrollY !== 0 || window.scrollX !== 0) {
+            window.scrollTo(0, 0);
+        }
+    }, { passive: false });
+    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
@@ -139,32 +153,21 @@ function setupEvents() {
         saveCurrentMemoSilent(); // 保存のみ
     });
 
-    // iPhoneのキーボード表示時、スクロール位置を保持
-    let lastScrollTop = 0;
+    // iPhoneのキーボード表示時スクロール位置保持
     els.editor.textarea.addEventListener('focus', () => {
-        lastScrollTop = els.editor.textarea.scrollTop;
-    });
-    
-    els.editor.textarea.addEventListener('scroll', () => {
-        lastScrollTop = els.editor.textarea.scrollTop;
-    });
-    
-    // キーボード表示/非表示時の画面復帰
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            if (editingMemoId && els.views.editor.classList.contains('active')) {
-                requestAnimationFrame(() => {
-                    els.editor.textarea.scrollTop = lastScrollTop;
-                    window.scrollTo(0, 0);
-                });
-            }
+        const scrollTop = els.editor.textarea.scrollTop;
+        requestAnimationFrame(() => {
+            els.editor.textarea.scrollTop = scrollTop;
+            window.scrollTo(0, 0);
         });
-    }
-    
-    // 常に画面上部に固定
-    window.addEventListener('scroll', () => {
-        window.scrollTo(0, 0);
     });
+    
+    // scrollIntoView動作を防止
+    els.editor.textarea.addEventListener('focus', (e) => {
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 0);
+    }, true);
     
     // スクロール同期 (入力欄とハイライト層を合わせる)
     // ハイライト削除により不要
@@ -789,9 +792,10 @@ function openEditor(id, folderId = null, savedScrollTop = 0) {
         const memo = memos.find(m => m.id === id);
         els.editor.textarea.value = memo.text;
         // 復元可能なスクロール位置があれば使用、新規編集時は0に
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             els.editor.textarea.scrollTop = savedScrollTop;
-        }, 0);
+            window.scrollTo(0, 0);
+        });
     } else {
         els.editor.textarea.value = '';
         const newMemo = {
@@ -804,9 +808,10 @@ function openEditor(id, folderId = null, savedScrollTop = 0) {
         memos.unshift(newMemo);
         editingMemoId = newMemo.id;
         // 新規作成時はスクロール位置をリセット
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             els.editor.textarea.scrollTop = 0;
-        }, 0);
+            window.scrollTo(0, 0);
+        });
     }
     
     els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;
