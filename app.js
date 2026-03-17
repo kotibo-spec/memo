@@ -16,27 +16,11 @@ let editingFolderId = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     initColorPicker();
-    applySettings();
+    applySettings(); 
     updateSortStatusText();
     restoreAppState();
     setupEvents();
-
-    // iPhoneキーボード表示時のビューポート変更対応
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            // キーボード表示時に画面がスクロールしないようにする
-            if (document.activeElement === els.editor.textarea) {
-                // エディタがフォーカスされている場合のみ対応
-                const scrollTop = els.editor.textarea.scrollTop;
-                requestAnimationFrame(() => {
-                    els.editor.textarea.scrollTop = scrollTop;
-                    // 画面全体のスクロールを防ぐ
-                    window.scrollTo(0, 0);
-                });
-            }
-        });
-    }
-
+    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
@@ -155,12 +139,31 @@ function setupEvents() {
         saveCurrentMemoSilent(); // 保存のみ
     });
 
-    // iPhoneのキーボード表示時スクロール位置保持
+    // iPhoneのキーボード表示時、スクロール位置を保持
+    let lastScrollTop = 0;
     els.editor.textarea.addEventListener('focus', () => {
-        const scrollTop = els.editor.textarea.scrollTop;
-        requestAnimationFrame(() => {
-            els.editor.textarea.scrollTop = scrollTop;
+        lastScrollTop = els.editor.textarea.scrollTop;
+    });
+    
+    els.editor.textarea.addEventListener('scroll', () => {
+        lastScrollTop = els.editor.textarea.scrollTop;
+    });
+    
+    // キーボード表示/非表示時の画面復帰
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            if (editingMemoId && els.views.editor.classList.contains('active')) {
+                requestAnimationFrame(() => {
+                    els.editor.textarea.scrollTop = lastScrollTop;
+                    window.scrollTo(0, 0);
+                });
+            }
         });
+    }
+    
+    // 常に画面上部に固定
+    window.addEventListener('scroll', () => {
+        window.scrollTo(0, 0);
     });
     
     // スクロール同期 (入力欄とハイライト層を合わせる)
