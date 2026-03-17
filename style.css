@@ -34,6 +34,8 @@ html, body {
     overflow: hidden;
     overscroll-behavior: none;
     display: flex; flex-direction: column;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* Header */
@@ -126,6 +128,7 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     outline: none;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: manipulation;
 }
 
 /* エディタ内ツールバー */
