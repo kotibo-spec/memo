@@ -138,6 +138,14 @@ function setupEvents() {
         
         saveCurrentMemoSilent(); // 保存のみ
     });
+
+    // iPhoneのキーボード表示時スクロール防止
+    els.editor.textarea.addEventListener('focus', () => {
+        const scrollTop = els.editor.textarea.scrollTop;
+        setTimeout(() => {
+            els.editor.textarea.scrollTop = scrollTop;
+        }, 0);
+    });
     
     // スクロール同期 (入力欄とハイライト層を合わせる)
     // ハイライト削除により不要
