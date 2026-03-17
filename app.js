@@ -140,7 +140,8 @@ function setupEvents() {
     });
 
     // iPhoneのキーボード表示時スクロール位置保持
-    els.editor.textarea.addEventListener('focus', () => {\n        const scrollTop = els.editor.textarea.scrollTop;
+    els.editor.textarea.addEventListener('focus', () => {
+        const scrollTop = els.editor.textarea.scrollTop;
         requestAnimationFrame(() => {
             els.editor.textarea.scrollTop = scrollTop;
         });
