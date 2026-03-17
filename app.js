@@ -21,27 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     restoreAppState();
     setupEvents();
     
-    // iPhoneキーボード表示時のスクロール防止
-    document.addEventListener('scroll', (e) => {
-        if (window.scrollY !== 0 || window.scrollX !== 0) {
-            window.scrollTo(0, 0);
-        }
-    }, { passive: false });
-    
-    // タッチ時も位置をリセット
-    document.addEventListener('touchmove', (e) => {
-        if (window.scrollY !== 0 || window.scrollX !== 0) {
-            window.scrollTo(0, 0);
-        }
-    }, { passive: false });
-    
-    // JavaScriptでもpadding-bottomを強制設定（iPhoneキーボード対応）
-    if (els.editor && els.editor.textarea) {
-        setTimeout(() => {
-            els.editor.textarea.style.paddingBottom = '500px';
-        }, 150);
-    }
-    
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
     }
@@ -163,20 +142,10 @@ function setupEvents() {
     // iPhoneのキーボード表示時スクロール位置保持
     els.editor.textarea.addEventListener('focus', () => {
         const scrollTop = els.editor.textarea.scrollTop;
-        // JavaScriptでもpaddingを強制設定
-        els.editor.textarea.style.paddingBottom = '500px';
         requestAnimationFrame(() => {
             els.editor.textarea.scrollTop = scrollTop;
-            window.scrollTo(0, 0);
         });
     });
-    
-    // scrollIntoView動作を防止
-    els.editor.textarea.addEventListener('focus', (e) => {
-        setTimeout(() => {
-            window.scrollTo(0, 0);
-        }, 0);
-    }, true);
     
     // スクロール同期 (入力欄とハイライト層を合わせる)
     // ハイライト削除により不要
@@ -801,10 +770,9 @@ function openEditor(id, folderId = null, savedScrollTop = 0) {
         const memo = memos.find(m => m.id === id);
         els.editor.textarea.value = memo.text;
         // 復元可能なスクロール位置があれば使用、新規編集時は0に
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             els.editor.textarea.scrollTop = savedScrollTop;
-            window.scrollTo(0, 0);
-        });
+        }, 0);
     } else {
         els.editor.textarea.value = '';
         const newMemo = {
@@ -817,10 +785,9 @@ function openEditor(id, folderId = null, savedScrollTop = 0) {
         memos.unshift(newMemo);
         editingMemoId = newMemo.id;
         // 新規作成時はスクロール位置をリセット
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             els.editor.textarea.scrollTop = 0;
-            window.scrollTo(0, 0);
-        });
+        }, 0);
     }
     
     els.headerTitle.textContent = `計 ${els.editor.textarea.value.length}`;

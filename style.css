@@ -30,7 +30,6 @@ html, body {
     color: var(--text-color);
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
     height: 100vh;
-    height: 100dvh;
     width: 100%;
     overflow: hidden;
     overscroll-behavior: none;
@@ -118,7 +117,8 @@ main { flex: 1; overflow: hidden; position: relative; display: flex; flex-direct
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Hiragino Kaku Gothic ProN", sans-serif;
     font-size: var(--base-font-size);
     line-height: 1.5;
-    padding: 16px 16px 500px 16px; /* キーボード裏に隠れないよう大きく設定 */
+    padding: 16px 16px 16px 16px; /* キーボード対応のため下部余白削除 */
+    padding-bottom: calc(16px + 50vh);
     width: 100%;
     box-sizing: border-box;
     word-wrap: break-word;
